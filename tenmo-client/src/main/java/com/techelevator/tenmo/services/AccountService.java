@@ -30,14 +30,14 @@ public class AccountService {
         return balance;
     }
 
-    public Boolean updateAccount(AuthenticatedUser authenticatedUser, Transfer transfer) {
+    public Boolean updateAccount(AuthenticatedUser authenticatedUser, Transfer transfer, int currentUserAccountId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(authenticatedUser.getToken());
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Transfer> entity = new HttpEntity<>(transfer, headers);
         boolean success = false;
         try {
-            restTemplate.exchange(baseUrl + "/transfers/" + transfer.getId(), HttpMethod.PUT, entity, Transfer.class);
+            restTemplate.exchange(baseUrl + "/balance/account/" + currentUserAccountId, HttpMethod.PUT, entity, Transfer.class);
             success = true;
         } catch (RestClientResponseException | ResourceAccessException e) {
             BasicLogger.log(e.getMessage());

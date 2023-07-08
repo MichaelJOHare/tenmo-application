@@ -1,6 +1,7 @@
 package com.techelevator.tenmo.model;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 public class Transfer {
     private int id;
@@ -66,5 +67,36 @@ public class Transfer {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Transfer transfer = (Transfer) o;
+        return id == transfer.id &&
+                transferStatusId == transfer.transferStatusId &&
+                transferTypeId == transfer.transferTypeId &&
+                accountFromId == transfer.accountFromId &&
+                accountToId == transfer.accountToId &&
+                amount.equals(transfer.amount);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, transferStatusId, transferTypeId, accountFromId, accountToId, amount);
+    }
+
+    @Override
+    public String toString() {
+        return "Transfer{" +
+                "id=" + id +
+                ", transferStatusId=" + transferStatusId +
+                ", transferTypeId=" + transferTypeId +
+                ", accountFromId=" + accountFromId +
+                ", accountToId=" + accountToId +
+                ", amount=" + amount +
+                '}';
     }
 }

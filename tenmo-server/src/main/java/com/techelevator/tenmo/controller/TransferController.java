@@ -1,6 +1,5 @@
 package com.techelevator.tenmo.controller;
 
-import com.techelevator.tenmo.dao.AccountDao;
 import com.techelevator.tenmo.dao.TransferDao;
 import com.techelevator.tenmo.dao.TransferStatusDao;
 import com.techelevator.tenmo.dao.TransferTypeDao;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -25,12 +23,9 @@ public class TransferController {
     private final TransferDao transferDao;
     private final TransferStatusDao transferStatusDao;
     private final TransferTypeDao transferTypeDao;
-    private final AccountDao accountDao;
 
-    public TransferController(TransferDao transferDao, AccountDao accountDao, TransferStatusDao transferStatusDao,
-                              TransferTypeDao transferTypeDao) {
+    public TransferController(TransferDao transferDao, TransferStatusDao transferStatusDao, TransferTypeDao transferTypeDao) {
         this.transferDao = transferDao;
-        this.accountDao = accountDao;
         this.transferStatusDao = transferStatusDao;
         this.transferTypeDao = transferTypeDao;
     }
@@ -87,15 +82,10 @@ public class TransferController {
     }
 
     @RequestMapping(path = "/{id}", method = RequestMethod.PUT)
-    public void updateAccountBalance(@RequestBody Transfer transfer) {
-        Account accountTo = accountDao.getAccountById(transfer.getAccountToId());
-        Account accountFrom = accountDao.getAccountById(transfer.getAccountFromId());
-        BigDecimal amountTransferred = transfer.getAmount();
-        if (transfer.getTransferStatusId() == transferStatusDao.getTransferStatusByDescription("Approved").getTransferStatusId()) {
-            accountFrom.getBalance().setBalance(accountFrom.getBalance().getBalance().subtract(amountTransferred));
-            accountTo.getBalance().setBalance(accountTo.getBalance().getBalance().add(amountTransferred));
-            accountDao.updateAccountBalance(accountFrom);
-            accountDao.updateAccountBalance(accountTo);
+    public Transfer updateTransfer(@Valid @RequestBody Transfer transfer, @PathVariable int id) {
+        if (transfer.getId() != id) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Could not find transfer with specified ID");
         }
+        return transferDao.updateTransfer(transfer);
     }
 }

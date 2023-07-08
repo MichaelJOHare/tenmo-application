@@ -4,6 +4,7 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Positive;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 public class ValidTransferDto {
     @Min(1)
@@ -65,5 +66,33 @@ public class ValidTransferDto {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ValidTransferDto validTransferDto = (ValidTransferDto) o;
+        return transferTypeId == validTransferDto.transferTypeId &&
+                transferStatusId == validTransferDto.transferStatusId &&
+                accountFromId == validTransferDto.accountFromId &&
+                accountToId == validTransferDto.accountToId &&
+                amount.equals(validTransferDto.amount);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(transferTypeId, transferStatusId, accountFromId, accountToId, amount);
+    }
+
+    @Override
+    public String toString() {
+        return "ValidTransferDto{" +
+                "transferTypeId=" + transferTypeId +
+                ", transferStatusId=" + transferStatusId +
+                ", accountFromId=" + accountFromId +
+                ", accountToId=" + accountToId +
+                ", amount=" + amount +
+                '}';
     }
 }

@@ -90,6 +90,21 @@ public class TransferService {
         return transferStatusDescription;
     }
 
+    public Transfer updateTransfer(AuthenticatedUser authenticatedUser, Transfer transfer) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(authenticatedUser.getToken());
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Transfer> entity = new HttpEntity<>(transfer, headers);
+        try {
+            ResponseEntity<Transfer> response = restTemplate.exchange(baseurl + "transfers/" + transfer.getId(),
+                    HttpMethod.PUT, entity, Transfer.class);
+            transfer = response.getBody();
+        } catch (RestClientResponseException | ResourceAccessException e) {
+            BasicLogger.log(e.getMessage());
+        }
+        return transfer;
+    }
+
     private HttpEntity<Transfer> makeEntity(AuthenticatedUser authenticatedUser, Transfer newTransfer) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(authenticatedUser.getToken());

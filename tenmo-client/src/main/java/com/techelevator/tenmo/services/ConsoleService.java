@@ -54,6 +54,7 @@ public class ConsoleService {
         System.out.println();
         System.out.println("-------------------------------------------");
         System.out.println("Users");
+        System.out.println();
         System.out.println("ID\t\t\t\tUsername");
         System.out.println("-------------------------------------------");
     }
@@ -62,7 +63,17 @@ public class ConsoleService {
         System.out.println();
         System.out.println("-------------------------------------------");
         System.out.println("Transfers");
+        System.out.println();
         System.out.println("ID\t\t\t\tFrom/To\t\t\t\tAmount");
+        System.out.println("-------------------------------------------");
+    }
+
+    public void printPendingTransfersBanner() {
+        System.out.println();
+        System.out.println("-------------------------------------------");
+        System.out.println("Request Transfers Pending");
+        System.out.println();
+        System.out.println("ID\t\t\t\tFrom\t\t\t\tAmount");
         System.out.println("-------------------------------------------");
     }
 
@@ -74,6 +85,7 @@ public class ConsoleService {
     }
 
     public void printNotEnoughBalanceForTransfer() {
+        System.out.println();
         System.out.println("**************************************************************");
         System.out.println("Your available balance is not high enough for the transaction.");
         System.out.println("**************************************************************");
@@ -81,12 +93,38 @@ public class ConsoleService {
 
     public void printTransferDetails(TransferService transferService, UserService userService,
                                      AuthenticatedUser currentUser, Transfer transfer) {
+        System.out.println();
         System.out.println("Id: " + transfer.getId());
-        System.out.println("From: " + userService.getUsernameByAccountId(currentUser, transfer.getAccountFromId()));
-        System.out.println("To: " + userService.getUsernameByAccountId(currentUser, transfer.getAccountToId()));
+        if (transfer.getTransferTypeId() == 2) {
+            System.out.println("From: " + userService.getUsernameByAccountId(currentUser, transfer.getAccountFromId()));
+        } else if (transfer.getTransferTypeId() == 1){
+            System.out.println("From: " + userService.getUsernameByAccountId(currentUser, transfer.getAccountToId()));
+        }
+        if (transfer.getTransferTypeId() == 2) {
+            System.out.println("To: " + userService.getUsernameByAccountId(currentUser, transfer.getAccountToId()));
+        } else if (transfer.getTransferTypeId() == 1) {
+            System.out.println("To: " + userService.getUsernameByAccountId(currentUser, transfer.getAccountFromId()));
+        }
         System.out.println("Type: " + transferService.getTransferTypeDescriptionById(currentUser, transfer.getTransferTypeId()));
         System.out.println("Status: " + transferService.getTransferStatusDescriptionById(currentUser, transfer.getTransferStatusId()));
         System.out.println("Amount: $" + transfer.getAmount());
+    }
+
+    public void printPendingTransferDetails(TransferService transferService, UserService userService,
+                                            AuthenticatedUser currentUser, Transfer transfer) {
+        System.out.println();
+        System.out.println("Id: " + transfer.getId());
+        System.out.println("Transfer Request From: " + userService.getUsernameByAccountId(currentUser, transfer.getAccountToId()));
+        System.out.println("Type: " + transferService.getTransferTypeDescriptionById(currentUser, transfer.getTransferTypeId()));
+        System.out.println("Status: " + transferService.getTransferStatusDescriptionById(currentUser, transfer.getTransferStatusId()));
+        System.out.println("Amount: $" + transfer.getAmount());
+    }
+
+    public void printApproveRejectChoiceMenu() {
+        System.out.println();
+        System.out.println("1: Approve");
+        System.out.println("2: Reject");
+        System.out.println("0: Don't approve or reject (cancel)");
     }
 
     public List<Transfer> createTransferList(List<Transfer> transferList, Transfer[] transfers,
@@ -101,6 +139,18 @@ public class ConsoleService {
         return transferList;
     }
 
+    public List<Transfer> createPendingRequestList(List<Transfer> requestList, Transfer[] transfers,
+                                                   AccountService accountService, AuthenticatedUser currentUser) {
+        for (Transfer transfer : transfers) {
+            if (transfer.getAccountFromId() ==
+                    accountService.getAccountByUserId(currentUser, currentUser.getUser().getId()).getAccountId() &&
+            transfer.getTransferTypeId() == 1 && transfer.getTransferStatusId() == 1) {
+                requestList.add(transfer);
+            }
+        }
+        return requestList;
+    }
+
     public void printCurrentUserTransferHistory(List<Transfer> transferList, AccountService accountService,
                                                 UserService userService, AuthenticatedUser currentUser) {
         for (Transfer transfer : transferList) {
@@ -113,6 +163,54 @@ public class ConsoleService {
                     accountService.getAccountByUserId(currentUser, currentUser.getUser().getId()).getAccountId()) {
                 System.out.println(transfer.getId() + "\t\t\tFrom: " +
                         userService.getUsernameByAccountId(currentUser, transfer.getAccountFromId()) + "\t\t\t$" +
+                        transfer.getAmount());
+            } else if (transfer.getTransferTypeId() == 1 && transfer.getAccountFromId() ==
+                    accountService.getAccountByUserId(currentUser, currentUser.getUser().getId()).getAccountId() &&
+                    transfer.getTransferStatusId() == 1) {
+                System.out.println(transfer.getId() + "(Pending)\tRequest From: " +
+                        userService.getUsernameByAccountId(currentUser, transfer.getAccountToId()) + "\t$" +
+                        transfer.getAmount());
+            } else if (transfer.getTransferTypeId() == 1 && transfer.getAccountToId() ==
+                    accountService.getAccountByUserId(currentUser, currentUser.getUser().getId()).getAccountId() &&
+                    transfer.getTransferStatusId() == 1) {
+                System.out.println(transfer.getId() + "(Pending)\tRequest To: " +
+                        userService.getUsernameByAccountId(currentUser, transfer.getAccountFromId()) + "\t$" +
+                        transfer.getAmount());
+            } else if (transfer.getTransferTypeId() == 1 && transfer.getAccountFromId() ==
+                    accountService.getAccountByUserId(currentUser, currentUser.getUser().getId()).getAccountId() &&
+                    transfer.getTransferStatusId() == 3) {
+                System.out.println(transfer.getId() + "(Rejected)\tRequest From: " +
+                        userService.getUsernameByAccountId(currentUser, transfer.getAccountToId()) + "\t$" +
+                        transfer.getAmount());
+            } else if (transfer.getTransferTypeId() == 1 && transfer.getAccountToId() ==
+                    accountService.getAccountByUserId(currentUser, currentUser.getUser().getId()).getAccountId() &&
+                    transfer.getTransferStatusId() == 3) {
+                System.out.println(transfer.getId() + "(Rejected)\tRequest To: " +
+                        userService.getUsernameByAccountId(currentUser, transfer.getAccountFromId()) + "\t$" +
+                        transfer.getAmount());
+            } else if (transfer.getTransferTypeId() == 1 && transfer.getAccountFromId() ==
+                    accountService.getAccountByUserId(currentUser, currentUser.getUser().getId()).getAccountId() &&
+                    transfer.getTransferStatusId() == 2) {
+                System.out.println(transfer.getId() + "(Approved)\tRequest From: " +
+                        userService.getUsernameByAccountId(currentUser, transfer.getAccountToId()) + "\t$" +
+                        transfer.getAmount());
+            } else if (transfer.getTransferTypeId() == 1 && transfer.getAccountToId() ==
+                    accountService.getAccountByUserId(currentUser, currentUser.getUser().getId()).getAccountId() &&
+                    transfer.getTransferStatusId() == 2) {
+                System.out.println(transfer.getId() + "(Approved)\tRequest To: " +
+                        userService.getUsernameByAccountId(currentUser, transfer.getAccountFromId()) + "\t$" +
+                        transfer.getAmount());
+            }
+        }
+    }
+
+    public void printCurrentUserPendingRequests(List<Transfer> transferList, AccountService accountService,
+                                                UserService userService, AuthenticatedUser currentUser) {
+        for (Transfer transfer : transferList) {
+            if (transfer.getTransferTypeId() == 1 && transfer.getAccountFromId() ==
+                    accountService.getAccountByUserId(currentUser, currentUser.getUser().getId()).getAccountId()) {
+                System.out.println(transfer.getId() + "\t\t\t" +
+                        userService.getUsernameByAccountId(currentUser, transfer.getAccountToId()) + "\t\t\t\t$" +
                         transfer.getAmount());
             }
         }
