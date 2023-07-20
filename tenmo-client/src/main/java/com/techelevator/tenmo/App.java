@@ -2,7 +2,6 @@ package com.techelevator.tenmo;
 
 import com.techelevator.tenmo.model.AuthenticatedUser;
 import com.techelevator.tenmo.model.Transfer;
-import com.techelevator.tenmo.model.TransferType;
 import com.techelevator.tenmo.model.UserCredentials;
 import com.techelevator.tenmo.services.*;
 
@@ -101,74 +100,36 @@ public class App {
         Transfer[] transfers = transferService.getTransfers(currentUser);
         List<Transfer> transferList = new ArrayList<>();
         transferList = consoleService.createTransferList(transferList, transfers, accountService, currentUser);
+
         if (transferList.size() > 0) {
-            consoleService.printCurrentUserTransferHistory(transferList, accountService, userService, currentUser);
-            int transferId = consoleService.promptForInt("Please enter transfer ID to view details (0 to cancel): ");
-            if (transferId != 0) {
-                Transfer transfer = transferService.getTransferById(currentUser, transferId);
-                consoleService.printTransferHistoryDetailsBanner();
-                consoleService.printTransferDetails(transferService, userService, currentUser, transfer);
-            }
+            handleTransferListAndDetails(transferList, accountService, consoleService, userService, transferService);
         } else {
             System.out.println("No transfer history available.");
         }
 	}
 
-	private void viewPendingRequests() {
+    private void viewPendingRequests() {
         consoleService.printPendingTransfersBanner();
         Transfer[] transfers = transferService.getTransfers(currentUser);
         List<Transfer> pendingRequestList = new ArrayList<>();
         pendingRequestList = consoleService.createPendingRequestList(pendingRequestList, transfers, accountService, currentUser);
+
         if (pendingRequestList.size() > 0) {
-            consoleService.printCurrentUserPendingRequests(pendingRequestList, accountService, userService, currentUser);
-            int transferId = consoleService.promptForInt("Please enter transfer ID to approve/reject (0 to cancel): ");
-            Transfer transfer = new Transfer();
-            try {
-                transfer = transferService.getTransferById(currentUser, transferId);
-            } catch (NullPointerException e) {
-                System.out.println("Invalid transfer ID entered.");
-            }
-            if (transferId != 0 && pendingRequestList.contains(transfer)) {
-                consoleService.printPendingTransferDetails(transferService, userService, currentUser, transfer);
-                consoleService.printApproveRejectChoiceMenu();
-                int approveRejectChoice = consoleService.promptForInt("Please choose an option: ");
-                if (approveRejectChoice != 0) {
-                    if (approveRejectChoice == 1 && accountService.getBalance(currentUser).getBalance().subtract(transfer.getAmount()).compareTo(BigDecimal.ZERO) >= 0) {
-                        transfer.setTransferStatusId(2);
-                        transferService.updateTransfer(currentUser, transfer);
-                        if (accountService.updateAccount(currentUser, transfer, accountService.getAccountByUserId(currentUser,
-                                currentUser.getUser().getId()).getAccountId())) {
-                            System.out.print("Request approved.");
-                        } else {
-                            System.out.println("Request approval failed.");
-                        }
-                    } else if (approveRejectChoice == 2) {
-                        transfer.setTransferStatusId(3);
-                        transferService.updateTransfer(currentUser, transfer);
-                        if (transferService.getTransferById(currentUser, transfer.getId()).getTransferStatusId() == 3) {
-                            System.out.println("Request rejected.");
-                        } else {
-                            System.out.println("Request rejection failed.");
-                        }
-                    } else {
-                        consoleService.printNotEnoughBalanceForTransfer();
-                    }
-                }
-            } else {
-                System.out.println("Could not find pending request transfer with specified ID.");
-            }
+            handleApproveOrReject(pendingRequestList, accountService, consoleService, userService, transferService);
         } else {
-            System.out.println("You have no pending transfers currently.");
+            System.out.println("You currently have 0 pending transfers.");
         }
-	}
+    }
 
 	private void sendBucks() {
         consoleService.printSendRequestBanner();
         consoleService.printUserIdsAndNames(currentUser, userService.getUsers(currentUser));
         int receivingUserId = consoleService.promptForInt("Enter ID of user you are sending money to (0 to cancel): ");
+
         if (receivingUserId == currentUser.getUser().getId()) {
             System.out.println("You cannot send money to yourself.");
         }
+
         if (receivingUserId != 0 && receivingUserId != currentUser.getUser().getId()) {
             BigDecimal amountToSend = consoleService.promptForBigDecimal("Enter amount: $");
             if (accountService.getBalance(currentUser).getBalance().subtract(amountToSend).compareTo(BigDecimal.ZERO) >= 0) {
@@ -177,11 +138,13 @@ public class App {
                 Transfer sendTransfer = new Transfer(2, 2, currentUserAccountId,
                         receivingUserAccountId, amountToSend);
                 Transfer sentTransfer = transferService.sendTransfer(currentUser, sendTransfer);
+
                 if (accountService.updateAccount(currentUser, sentTransfer, currentUserAccountId)) {
                     System.out.println("Transfer complete.");
                 } else {
-                    System.out.println("Transfer failed.");
+                    System.out.println("Transfer failed, make sure the user ID you enter matches a user ID on the list and try again.");
                 }
+
             } else {
                 consoleService.printNotEnoughBalanceForTransfer();
             }
@@ -192,9 +155,11 @@ public class App {
         consoleService.printSendRequestBanner();
         consoleService.printUserIdsAndNames(currentUser, userService.getUsers(currentUser));
         int requestingUserId = consoleService.promptForInt("Enter ID of user you are requesting money from (0 to cancel): ");
+
         if (requestingUserId == currentUser.getUser().getId()) {
             System.out.println("You cannot request money from yourself.");
         }
+
         if (requestingUserId != 0 && requestingUserId != currentUser.getUser().getId()) {
             BigDecimal amountToRequest = consoleService.promptForBigDecimal("Enter amount: $");
             Transfer requestTransfer = new Transfer(1, 1,
@@ -202,15 +167,100 @@ public class App {
                     accountService.getAccountByUserId(currentUser, currentUser.getUser().getId()).getAccountId(),
                     amountToRequest);
             Transfer requestedTransfer = transferService.sendTransfer(currentUser, requestTransfer);
-            if (transferService.getTransferStatusDescriptionById(currentUser,
-                    requestedTransfer.getTransferStatusId()).equals("Pending")) {
-                System.out.println("Request was sent and is pending approval from user.");
-            } else {
-                System.out.println("Request failed.");
+            try {
+                if (transferService.getTransferStatusDescriptionById(currentUser,
+                        requestedTransfer.getTransferStatusId()).equals("Pending")) {
+                    System.out.println("Request was sent and is pending approval from user.");
+                } else {
+                    System.out.println("Request failed.");
+                }
+            } catch (NullPointerException e) {
+                System.out.println("Could not find user with specified ID.");
             }
         }
 	}
+
+    private void handleTransferListAndDetails(List<Transfer> transferList, AccountService accountService, ConsoleService consoleService,
+                                              UserService userService, TransferService transferService) {
+
+        consoleService.printCurrentUserTransferHistory(transferList, accountService, userService, currentUser);
+        int transferId = consoleService.promptForInt("Please enter transfer ID to view details (0 to cancel): ");
+        Transfer transfer = new Transfer();
+
+        if (transferId == 0) {
+            return;
+        }
+
+        try {
+            transfer = transferService.getTransferById(currentUser, transferId);
+        } catch (NullPointerException e) {
+            System.out.println("Invalid transfer ID entered.");
+        }
+
+        if (transferList.contains(transfer)) {
+            consoleService.printTransferHistoryDetailsBanner();
+            consoleService.printTransferDetails(transferService, userService, currentUser, transfer);
+        } else {
+            System.out.println("Could not find transfer with specified ID.");
+        }
+    }
+
+    private void handleApproveOrReject(List<Transfer> pendingRequestList, AccountService accountService, ConsoleService consoleService,
+                                       UserService userService, TransferService transferService) {
+
+        consoleService.printCurrentUserPendingRequests(pendingRequestList, accountService, userService, currentUser);
+        int transferId = consoleService.promptForInt("Please enter transfer ID to approve/reject (0 to cancel): ");
+
+        if (transferId != 0) {
+            Transfer transfer = new Transfer();
+            try {
+                transfer = transferService.getTransferById(currentUser, transferId);
+            } catch (NullPointerException e) {
+                System.out.println("Invalid transfer ID entered.");
+            }
+
+            if (pendingRequestList.contains(transfer)) {
+                consoleService.printPendingTransferDetails(transferService, userService, currentUser, transfer);
+                consoleService.printApproveRejectChoiceMenu();
+                int approveRejectChoice = consoleService.promptForInt("Please choose an option: ");
+
+                if (approveRejectChoice == 0) {
+                    return;
+                }
+
+                switch (approveRejectChoice) {
+                    case 1:
+                        BigDecimal balance = accountService.getBalance(currentUser).getBalance();
+                        BigDecimal transferAmount = transfer.getAmount();
+                        if (balance.subtract(transferAmount).compareTo(BigDecimal.ZERO) >= 0) {
+                            transfer.setTransferStatusId(2);
+                            transfer = transferService.updateTransfer(currentUser, transfer);
+                            if (accountService.updateAccount(currentUser, transfer, accountService.getAccountByUserId(currentUser,
+                                    currentUser.getUser().getId()).getAccountId())) {
+                                System.out.print("Request approved.");
+                            } else {
+                                System.out.println("Request approval failed.");
+                            }
+                        } else {
+                            consoleService.printNotEnoughBalanceForTransfer();
+                        }
+                        break;
+                    case 2:
+                        transfer.setTransferStatusId(3);
+                        transfer = transferService.updateTransfer(currentUser, transfer);
+                        if (transferService.getTransferById(currentUser, transfer.getId()).getTransferStatusId() == 3) {
+                            System.out.println("Request rejected.");
+                        } else {
+                            System.out.println("Request rejection failed.");
+                        }
+                        break;
+                    default:
+                        System.out.println("You did not enter a valid option.");
+                        break;
+                }
+            } else {
+                System.out.println("Could not find pending request transfer with specified ID.");
+            }
+        }
+    }
 }
-
-
-//to do: how to implement approve/reject for requestBucks
