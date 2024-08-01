@@ -10,7 +10,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>11</java.version>
-        <spring.version>5.2.6.RELEASE</spring.version>
+        <spring.version>6.0.19</spring.version>
         <maven-resources-plugin.version>3.0.2</maven-resources-plugin.version>
         <maven-archetype-plugin.version>3.0.1</maven-archetype-plugin.version>
         <maven.compiler.target>11</maven.compiler.target>
